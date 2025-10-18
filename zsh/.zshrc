@@ -2,7 +2,7 @@ export ZSH="$HOME/.oh-my-zsh"
 
 ZSH_THEME=()
 
-ENABLE_CORRECTION="true"
+ENABLE_CORRECTION="false"
 
 plugins=(git zsh-syntax-highlighting colored-man-pages)
 
@@ -36,5 +36,14 @@ setopt share_history    # compartilha histório entre sessões
 setopt correct          # sugere correções de comando errado
 setopt notify           # mostra quando jobs terminam
 
-export PATH="$HOME/.local/bin:$PATH"
-export PROMPT=$'┌─[%F{84}%n@%m%f in %F{84}$(pwd)%f at %F{84}%D{%d/%b/%Y %T}%f]\n└─[%F{84}\$%f] '
+### Loading de Configurações
+if [ -f "$HOME/.zsh_android" ]; then
+    source "$HOME/.zsh_android"
+fi
+
+export PATH="$HOME/.local/bin:/usr/local/node/bin:$PATH"
+
+export TERM=xterm-256color
+# export PROMPT=$'┌─[%F{84}%n@%m%f in %F{84}$(pwd)%f at %F{84}%D{%d/%b/%Y %T}%f]\n└─[%F{84}\$%f] '
+export PROMPT="┌─[%F{84}%n@%m%f in %F{84}%~%f at %F{84}%D{%d/%b/%Y %T}%f]
+└─[%F{84}\$%f] "
