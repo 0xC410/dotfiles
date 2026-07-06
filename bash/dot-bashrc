@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+
+[[ -n $PS1 ]] || return
+
+# ENVONMENT VARS
+# ========= ====
+export EDITOR='vim'
+export VISUAL='vim'
+export PAGER='less'
+export HISTSIZE=10000
+export HISTFILESIZE=10000
+export HISTCONTROL=ignoredups:erasedups
+export HISTTIMEFORMAT="%F %T "
+export PROMPT_DIRTRIM=6
+
+# SHELL OPTIONS
+# ===== =======
+shopt -s histappend
+shopt -s checkwinsize
+shopt -s autocd   # Bash >= 4
+shopt -s dirspell # Bash >= 4
+shopt -s cdspell
+shopt -s extglob
+
+# ALIASES
+# =======
+alias  ..='cd ..'
+alias ...='cd ../..'
+alias ls='ls -p --color=auto'
+alias ll='ls -lah'
+alias l='ls'
+alias grep='grep --color=auto'
+alias diff='diff --color=auto'
+
+# COLORS
+# ======
+
+# FUNCTIONS
+# =========
+reload() {
+    . ~/.bashrc
+}
+
+
+path() {
+    printf '%s\n' "$PATH" | tr ':' '\n'
+}
+
+
+path_remove() {
+    local dir="$1"
+    local old_path="$PATH"
+    local new_path=""
+    local entry
+
+    while [ -n "$old_path" ]; do
+        entry="${old_path%%:*}"
+
+        if [ "$old_path" = "$entry" ]; then
+            old_path=""
+        else
+            old_path="${old_path#*:}"
+        fi
+
+        [ "$dir" = "$entry" ] && continue
+        [ -z "$entry" ] && continue
+
+        if [ -z "$new_path" ]; then
+            new_path="$entry"
+        else
+            new_path="$new_path:$entry"
+        fi
+    done
+
+    PATH=$new_path
+}
+
+
+path_add() {
+    local dir="$1"
+    local position="$2"
+
+    if [ -z "$dir" ] || [ -z "$position" ]; then
+        echo "Uso: path_add <dir> <before|after>"
+        return 1
+    fi
+
+    if [ ! -d "$dir" ]; then
+        return 0
+    fi
+    
+    # Evita duplicatas no PATH ao abrir um novo Shell
+    path_remove "$dir"
+
+    case "$position" in
+        before)
+            PATH="$dir${PATH:+:$PATH}"
+            ;;
+        after)
+            PATH="${PATH:+$PATH:}$dir"
+            ;;
+        *)
+            echo "Posição inválida: $position"
+            echo "Use: before ou after"
+            return 1
+            ;;
+    esac
+
+    export PATH
+}
+
+
+__set_prompt() {
+    local exit_code="$?"
+    local status=
+    local ssh_label=
+    local branch=
+    local modified=
+    # local chroot= # need function
+    
+    # COLORS
+    # ======
+    local RESET='\[\e[0m\]'
+    local RED='\[\e[31m\]'
+    local GREEN='\[\e[32m\]'
+    local YELLOW='\[\e[33m\]'
+    local BLUE='\[\e[34m\]'
+    local MAGENTA='\[\e[35m\]'
+    local CYAN='\[\e[36m\]'
+    local WHITE='\[\e[1;97m\]'
+
+
+    if [ "$exit_code" -ne 0 ]; then
+        status="[$exit_code]"
+    fi
+
+    # if [ -n "$SSH_CONNECTION" ]; then
+    #     ssh_label="[SSH]"
+    # fi
+
+    branch="$(git branch --show-current 2>/dev/null)"
+
+    if [ -n "$(git status -s 2>/dev/null)" ]; then
+        modified='*'
+    fi
+
+    if [ -n "$branch" ]; then
+        branch="($branch$modified) "
+    fi
+
+    export PS1="${YELLOW}${branch}${GREEN}\w ${WHITE}\$${RESET} "        
+}
+
+
+# PROMPT
+# ======
+case ";$PROMPT_COMMAND;" in
+    *";__set_prompt;"*) ;;
+    *) PROMPT_COMMAND="__set_prompt${PROMPT_COMMAND:+;$PROMPT_COMMAND}" ;;
+esac
+
+# CUSTOM ENV
+# ====== ===
+path_add "$HOME/.local/bin" before
+path_add "$HOME/bin" before
+
+# Configurações privadas
+[ -r "$HOME/.bashrc.local" ] && 
+    . "$HOME/.bashrc.local"
+
+[ -r "/usr/share/bash-completion/bash_completion" ] &&
+    . "/usr/share/bash-completion/bash_completion"
